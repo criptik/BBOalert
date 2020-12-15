@@ -333,14 +333,26 @@ function confirmBidsSet() {
 	else return 'N';
 }
 
-function buttonOKvisible() {
+function isBiddingButtonVisible(buttonIndex) {
 	if ((nd = getNavDiv()) == null) return false;
 	var elBiddingBox = nd.querySelector(".biddingBoxClass");
 	if (elBiddingBox == null) return false;
 	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
 	if (elBiddingButtons == null) return false;
-	if (elBiddingButtons.lebgth < 17) return false;
-	return (elBiddingButtons[16].style.display != 'none');
+	if (elBiddingButtons.length < 17) return false;
+	return (elBiddingButtons[buttonIndex].style.display != 'none');
+}
+
+function buttonOKvisible() {
+	return isBiddingButtonVisible(16)
+}
+
+function buttonDoublevisible() {
+	return isBiddingButtonVisible(13)
+}
+
+function buttonRedoublevisible() {
+	return isBiddingButtonVisible(14)
 }
 
 function toggleOptions() {

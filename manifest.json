@@ -1,8 +1,8 @@
 {
 	"manifest_version": 2,
-	"name": "BBOalert",
+	"name": "BBOalert-criptik",
 	"description": "Auto alert on BBO",
-	"version": "5.0",
+	"version": "5.0.901",
 	"permissions": [
 		"clipboardRead",
 		"clipboardWrite"

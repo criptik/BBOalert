@@ -639,11 +639,70 @@ function setPostMortem() {
 	if (ok.onclick == null) ok.onclick = savePostMortem;
 }
 
+function handleKeyboardBid(e) {
+	// this listener will ignore anything if the bidding box is not visible
+	// (for example, keyboard input for cards played)
+	if (!isVisible(getBiddingBox())) {
+		return
+	}
+	// will also ignore anything caught from an INPUT element
+	if (e.target.nodeName == 'INPUT') {
+		return;
+	}
+	
+	ukey = e.key.toUpperCase();
+	if (ukey === 'ENTER') {
+		// Enter goes to OK button
+		// we would like to ignore it if OK button not visible
+		// but the button goes away before this listener is called
+		if (callText.length == 2) { // && buttonOKVisible()
+			addLog('key:[OK]');
+			console.log(`recorded bid of ${callText}`);
+			saveAlert();
+			sendChat();
+		}
+		// restart bid gathering
+		callText = '';
+	}
+	else if ('1234567'.includes(ukey)) {
+		addLog(`key:[${ukey}]`);
+		callText = ukey;
+		if ((confirmBidsSet() != 'N')) clearAlert();
+		// console.log(`starting new bid level=${callText}`);
+	}
+	else if ((callText.length == 1) && ('CDHSN'.includes(ukey))) {
+		addLog(`key:[${ukey}]`);
+		callText = callText[0] + ukey
+		getAlert();
+		if ((confirmBidsSet() == 'Y')) confirmBid();
+		// console.log(`new bid is now ${callText}`);
+	}
+	else if ((callText.length == 0) && ('PDR'.includes(ukey))) {
+		// for dbl and redouble we would like to ignore it
+		// if the corresponding buttons are not visible
+		// but the button goes away before this listener is called
+		if (ukey == 'P') {
+			callText = '--';
+		} else if (ukey == 'D') {  // && buttonDoubleVisible()
+			callText = 'Db';
+		} else if (ukey == 'R') {  // && buttonRedoubleVisible()
+			callText = 'Rd';
+		}
+		addLog(`key:[${callText}]`);
+		getAlert();
+		if ((confirmBidsSet() == 'Y')) confirmBid();
+		// console.log(`detected attempt to bid ${callText}`);
+	}
+	// console.log(`after ${ukey}, callText=${callText}`) 
+}
 
 // Set action for each bidding box button
 function setBiddingButtonEvents() {
+	// for now we will attach to all keyboard events
+	// and then ignore the ones that are from an INPUT element
+	document.onkeydown = handleKeyboardBid;
+	
 	var elBiddingBox = document.querySelector(".biddingBoxClass");
-	if (elBiddingBox == null) return;
 	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
 	if (elBiddingButtons == null) return;
 	if (elBiddingButtons.length < 17) return;
