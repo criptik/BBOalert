@@ -639,6 +639,63 @@ function setPostMortem() {
 	if (ok.onclick == null) ok.onclick = savePostMortem;
 }
 
+// evil sleep function
+function sleep(milliseconds) {
+	const date = Date.now();
+	let currentDate = null;
+	do {
+		currentDate = Date.now();
+	} while (currentDate - date < milliseconds);
+}
+
+
+function waitForOKHighlighted() {
+	var n = 0;
+	do {
+		if (buttonOKHighlighted()) {
+			console.log(`waitForOKHighlighted success, n=${n}`);
+			return true;
+		}
+		if (n > 10) {
+			console.log(`waitForOKHighlighted failure, n=${n}`);
+			return false;
+		}
+		sleep(10);
+		n += 1;
+	} while (true);		
+}
+
+function isCallTextLegal() {
+	// uncomment to avoid all this checking
+	// return true;
+
+	// pass is always legal
+	if (callText == '--') return true;
+
+	// non-pass bids, wait for OK button to become visible and highlighted
+	// and if it takes too long return false
+	if (!waitForOKHighlighted()) {
+		console.log(`rejected callText=${callText}, no OK button, context=${getContext()}`);
+		return false;
+	}
+	if (callText == 'Db') {
+		if (buttonDoubleHighlighted()) return true;
+	}
+	else if (callText == 'Rd') {
+		if (buttonRedoubleHighlighted()) return true;
+	}
+	else {
+		// Normal level-suit bids
+		level = parseInt(callText[0]);
+		suit = callText[1];
+		if (buttonLevelHighlighted(level) && buttonSuitHighlighted(suit)) return true;
+	}
+	// if we got this far it is not legal
+	console.log(`rejected callText=${callText}, context=${getContext()}`);
+	return false;
+}
+
+
 function handleKeyboardBid(e) {
 	// this listener will ignore anything if the bidding box is not visible
 	// (for example, keyboard input for cards played)
@@ -655,7 +712,7 @@ function handleKeyboardBid(e) {
 		// Enter goes to OK button
 		// we would like to ignore it if OK button not visible
 		// but the button goes away before this listener is called
-		if (callText.length == 2) { // && buttonOKVisible()
+		if (callText.length == 2) { 
 			addLog('key:[OK]');
 			console.log(`recorded bid of ${callText}`);
 			saveAlert();
@@ -671,8 +728,12 @@ function handleKeyboardBid(e) {
 		// console.log(`starting new bid level=${callText}`);
 	}
 	else if ((callText.length == 1) && ('CDHSN'.includes(ukey))) {
+		callText = callText[0] + ukey;
+		if (!isCallTextLegal()) {
+			callText = '';
+			return;
+		}
 		addLog(`key:[${ukey}]`);
-		callText = callText[0] + ukey
 		getAlert();
 		if ((confirmBidsSet() == 'Y')) confirmBid();
 		// console.log(`new bid is now ${callText}`);
@@ -681,12 +742,21 @@ function handleKeyboardBid(e) {
 		// for dbl and redouble we would like to ignore it
 		// if the corresponding buttons are not visible
 		// but the button goes away before this listener is called
+		// (due to the bbo listener for dbl or redouble)
 		if (ukey == 'P') {
 			callText = '--';
-		} else if (ukey == 'D') {  // && buttonDoubleVisible()
+		} else if (ukey == 'D') {  
 			callText = 'Db';
-		} else if (ukey == 'R') {  // && buttonRedoubleVisible()
+			if (!isCallTextLegal()) {
+				callText = '';
+				return;
+			}
+		} else if (ukey == 'R') {  
 			callText = 'Rd';
+			if (!isCallTextLegal()) {
+				callText = '';
+				return;
+			}
 		}
 		addLog(`key:[${callText}]`);
 		getAlert();
@@ -700,7 +770,7 @@ function handleKeyboardBid(e) {
 function setBiddingButtonEvents() {
 	// for now we will attach to all keyboard events
 	// and then ignore the ones that are from an INPUT element
-	document.onkeydown = handleKeyboardBid;
+	document.onkeyup = handleKeyboardBid;
 	
 	var elBiddingBox = document.querySelector(".biddingBoxClass");
 	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
