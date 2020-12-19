@@ -653,7 +653,7 @@ function handleKeyboardBid(e) {
 	
 	ukey = e.key.toUpperCase();
 	// since all the logic is really in the  mutation observers
-	// here we only check for Enter
+	// here we only check for Enter to record the callText 
 	if (ukey === 'ENTER') {
 		// Enter goes to OK button
 		// we would like to ignore it if OK button not visible
@@ -667,12 +667,25 @@ function handleKeyboardBid(e) {
 		// restart bid gathering
 		callText = '';
 	}
+	// level bids just addLog and clearAlert
+	// callText manipulation is in MutationObserver
+	else if ('1234567'.includes(ukey)) {
+		addLog(`key:[${ukey}]`);
+		if ((confirmBidsSet() != 'N')) clearAlert();
+	}
 }
 
 let okButtonStyleObserver;
 let suitButtonStyleObserver;
+// set the following true to get verbose console.log for keyBid debugging
+let keyBidVerbose = false;
+
+function isKeyBidVerbose() {
+	return keyBidVerbose;
+}
 
 function logMutRecords(mutationRecords, name) {
+	if (!isKeyBidVerbose()) return;
 	// get list of button Texts
 	console.log(`${name}: ${mutationRecords.length}, ${Date.now()}`);
 	for (let mut of mutationRecords) {
@@ -696,7 +709,7 @@ function highlightedButtonsToCallText() {
 	for (idx=0; idx<7; idx++) {
 		if (isBiddingButtonHighlighted(idx)) {
 			level = idx + 1;
-			console.log(`level=${level}`);
+			if (isKeyBidVerbose()) console.log(`level=${level}`);
 			break;
 		}
 	}
@@ -706,7 +719,7 @@ function highlightedButtonsToCallText() {
 		for (idx=7; idx<12; idx++) {
 			if (isBiddingButtonHighlighted(idx)) {
 				suit = 'CDHSN'[idx-7];
-				console.log(`suit=${suit}`);
+				if (isKeyBidVerbose()) console.log(`suit=${suit}`);
 				break;
 			}
 		}
@@ -728,13 +741,13 @@ function highlightedButtonsToCallText() {
 	}
 	if (callText != '') {
 		addLog(`key:[${callText}]`);
-		console.log(`key:[${callText}]`);
+		if (isKeyBidVerbose()) console.log(`key:[${callText}]`);
 		getAlert();
 		if ((confirmBidsSet() == 'Y')) confirmBid();
 		return;
 	}
 	else {
-		console.log('no highlighted button pattern');
+		if (isKeyBidVerbose()) console.log('no highlighted button pattern');
 	}
 
 }

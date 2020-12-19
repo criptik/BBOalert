@@ -368,12 +368,14 @@ function isBiddingButtonHighlighted(buttonIndex) {
 	buttonText = elBiddingButtons[buttonIndex].innerText;
 	if (!isBiddingButtonVisible(buttonIndex)) {
 		buttonDisplay = elBiddingButtons[buttonIndex].style.display;
-		console.log(`not vis: ${buttonText}, ${buttonDisplay}`);
+		if (isKeyBidVerbose()) console.log(`not vis: ${buttonText}, ${buttonDisplay}`);
 		return false;
 	}
 	buttonCompBgColor = window.getComputedStyle(elBiddingButtons[buttonIndex]).backgroundColor;
-	buttonStyleBgColor = elBiddingButtons[buttonIndex].style.backgroundColor;
-	console.log(`bgcol: ${buttonText}, ${buttonCompBgColor}, ${buttonStyleBgColor}`);
+	if (isKeyBidVerbose()) {
+		buttonStyleBgColor = elBiddingButtons[buttonIndex].style.backgroundColor;
+		console.log(`bgcol: ${buttonText}, ${buttonCompBgColor}, ${buttonStyleBgColor}`);
+	}
 	return (buttonStyleBgColor != buttonBaseColors[buttonIndex]);
 }
 
