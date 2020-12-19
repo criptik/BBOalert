@@ -7,7 +7,7 @@ function getBBOalertHeaderMsg() {
 		var r = alertTable[0].split(',')[1];
 		if (r == undefined) return '';
 		return ' ' + r.trim() + ' ';
-	} catch {
+	} catch (e) {
 		return '';
 	}
 }
@@ -40,7 +40,7 @@ function userScript(S, CR, C, BR, B) {
 	try {
 		eval(S);
 		return R;
-	} catch {
+	} catch (e) {
 		return 'ERROR';
 	}
 }
@@ -343,16 +343,19 @@ function isBiddingButtonVisible(buttonIndex) {
 	return (elBiddingButtons[buttonIndex].style.display != 'none');
 }
 
-const bboWhite  = 'rgb(255, 255. 255)'
+const bboWhite  = 'rgb(255, 255, 255)'
 const bboYellow = 'rgb(255, 206, 0)';
 const bboRed    = 'rgb(203, 0, 0)';
 const bboGreen  = 'rgb(16, 102, 16)';
 const bboBlue  = 'rgb(67, 119, 169)';
+const bboBlack  = 'rgb(0, 0, 0)';
 var buttonBaseColors = [bboWhite, bboWhite, bboWhite, bboWhite, bboWhite, bboWhite, bboWhite, // 1-7
 			bboWhite, bboWhite, bboWhite, bboWhite, bboWhite,                     // suits
 			bboGreen, //pass
 			bboRed,   //double
 			bboBlue,  //redouble
+			bboBlack,
+			bboBlack, // OK
 ];
 
 function isBiddingButtonHighlighted(buttonIndex) {
@@ -362,12 +365,16 @@ function isBiddingButtonHighlighted(buttonIndex) {
 	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
 	if (elBiddingButtons == null) return false;
 	if (elBiddingButtons.length < 17) return false;
-	if (!isBiddingButtonVisible(buttonIndex)) return false;
-	buttonBgColor = window.getComputedStyle(elBiddingButtons[buttonIndex]).backgroundColor;
-	if (buttonBgColor == buttonBaseColors[buttonIndex]) {
-		console.log(`buttonIndex ${buttonIndex}, bgColor ${buttonBgColor}`);
+	buttonText = elBiddingButtons[buttonIndex].innerText;
+	if (!isBiddingButtonVisible(buttonIndex)) {
+		buttonDisplay = elBiddingButtons[buttonIndex].style.display;
+		console.log(`not vis: ${buttonText}, ${buttonDisplay}`);
+		return false;
 	}
-	return (buttonBgColor != buttonBaseColors[buttonIndex]);
+	buttonCompBgColor = window.getComputedStyle(elBiddingButtons[buttonIndex]).backgroundColor;
+	buttonStyleBgColor = elBiddingButtons[buttonIndex].style.backgroundColor;
+	console.log(`bgcol: ${buttonText}, ${buttonCompBgColor}, ${buttonStyleBgColor}`);
+	return (buttonStyleBgColor != buttonBaseColors[buttonIndex]);
 }
 
 function buttonOKvisible() {
@@ -378,8 +385,12 @@ function buttonOKHighlighted() {
 	return isBiddingButtonHighlighted(16)
 }
 
+function buttonPassHighlighted() {
+    return isBiddingButtonHighlighted(12)
+}
+
 function buttonDoubleHighlighted() {
-	return isBiddingButtonHighlighted(13)
+    return isBiddingButtonHighlighted(13)
 }
 
 function buttonRedoubleHighlighted() {
@@ -800,7 +811,7 @@ function matchContext(refContext, actContext) {
 		re = new RegExp(ref);
 		if (!re.test(actContext)) return false;
 		return (actContext.match(re)[0].length == actContext.length);
-	} catch {
+	} catch (e) {
 		return false;
 	}
 }

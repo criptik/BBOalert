@@ -63,7 +63,7 @@ function receiveMessageBBO(event) {
 			setTimeout(function () {
 				setOptions(true);
 			}, 200);
-		} catch {
+		} catch (e) {
 //			console.log('Error in event.data ' + event.data.length);
 		}
 	}
@@ -639,62 +639,6 @@ function setPostMortem() {
 	if (ok.onclick == null) ok.onclick = savePostMortem;
 }
 
-// evil sleep function
-function sleep(milliseconds) {
-	const date = Date.now();
-	let currentDate = null;
-	do {
-		currentDate = Date.now();
-	} while (currentDate - date < milliseconds);
-}
-
-
-function waitForOKHighlighted() {
-	var n = 0;
-	do {
-		if (buttonOKHighlighted()) {
-			console.log(`waitForOKHighlighted success, n=${n}`);
-			return true;
-		}
-		if (n > 10) {
-			console.log(`waitForOKHighlighted failure, n=${n}`);
-			return false;
-		}
-		sleep(10);
-		n += 1;
-	} while (true);		
-}
-
-function isCallTextLegal() {
-	// uncomment to avoid all this checking
-	// return true;
-
-	// pass is always legal
-	if (callText == '--') return true;
-
-	// non-pass bids, wait for OK button to become visible and highlighted
-	// and if it takes too long return false
-	if (!waitForOKHighlighted()) {
-		console.log(`rejected callText=${callText}, no OK button, context=${getContext()}`);
-		return false;
-	}
-	if (callText == 'Db') {
-		if (buttonDoubleHighlighted()) return true;
-	}
-	else if (callText == 'Rd') {
-		if (buttonRedoubleHighlighted()) return true;
-	}
-	else {
-		// Normal level-suit bids
-		level = parseInt(callText[0]);
-		suit = callText[1];
-		if (buttonLevelHighlighted(level) && buttonSuitHighlighted(suit)) return true;
-	}
-	// if we got this far it is not legal
-	console.log(`rejected callText=${callText}, context=${getContext()}`);
-	return false;
-}
-
 
 function handleKeyboardBid(e) {
 	// this listener will ignore anything if the bidding box is not visible
@@ -708,6 +652,8 @@ function handleKeyboardBid(e) {
 	}
 	
 	ukey = e.key.toUpperCase();
+	// since all the logic is really in the  mutation observers
+	// here we only check for Enter
 	if (ukey === 'ENTER') {
 		// Enter goes to OK button
 		// we would like to ignore it if OK button not visible
@@ -721,61 +667,113 @@ function handleKeyboardBid(e) {
 		// restart bid gathering
 		callText = '';
 	}
-	else if ('1234567'.includes(ukey)) {
-		addLog(`key:[${ukey}]`);
-		callText = ukey;
-		if ((confirmBidsSet() != 'N')) clearAlert();
-		// console.log(`starting new bid level=${callText}`);
-	}
-	else if ((callText.length == 1) && ('CDHSN'.includes(ukey))) {
-		callText = callText[0] + ukey;
-		if (!isCallTextLegal()) {
-			callText = '';
-			return;
-		}
-		addLog(`key:[${ukey}]`);
-		getAlert();
-		if ((confirmBidsSet() == 'Y')) confirmBid();
-		// console.log(`new bid is now ${callText}`);
-	}
-	else if ((callText.length == 0) && ('PDR'.includes(ukey))) {
-		// for dbl and redouble we would like to ignore it
-		// if the corresponding buttons are not visible
-		// but the button goes away before this listener is called
-		// (due to the bbo listener for dbl or redouble)
-		if (ukey == 'P') {
-			callText = '--';
-		} else if (ukey == 'D') {  
-			callText = 'Db';
-			if (!isCallTextLegal()) {
-				callText = '';
-				return;
-			}
-		} else if (ukey == 'R') {  
-			callText = 'Rd';
-			if (!isCallTextLegal()) {
-				callText = '';
-				return;
-			}
-		}
-		addLog(`key:[${callText}]`);
-		getAlert();
-		if ((confirmBidsSet() == 'Y')) confirmBid();
-		// console.log(`detected attempt to bid ${callText}`);
-	}
-	// console.log(`after ${ukey}, callText=${callText}`) 
 }
 
-// Set action for each bidding box button
-function setBiddingButtonEvents() {
+let okButtonStyleObserver;
+let suitButtonStyleObserver;
+
+function logMutRecords(mutationRecords, name) {
+	// get list of button Texts
+	console.log(`${name}: ${mutationRecords.length}, ${Date.now()}`);
+	for (let mut of mutationRecords) {
+		buttonBgColor = mut.target.style.backgroundColor;
+		buttonDisplay = mut.target.style.display;
+		console.log(`${mut.target.innerText}, ${buttonBgColor}, ${buttonDisplay}`);
+	}
+	if (false) {
+		for (let mut of mutationRecords) {
+			console.log(mut);
+		}
+	}
+}
+
+function highlightedButtonsToCallText() {
+	callText = '';
+	if (!buttonOKHighlighted()) return;
+
+	// find out which buttons are highlighted
+	level = 0;
+	for (idx=0; idx<7; idx++) {
+		if (isBiddingButtonHighlighted(idx)) {
+			level = idx + 1;
+			console.log(`level=${level}`);
+			break;
+		}
+	}
+	if (level > 0) {
+		// search suits
+		suit = ''
+		for (idx=7; idx<12; idx++) {
+			if (isBiddingButtonHighlighted(idx)) {
+				suit = 'CDHSN'[idx-7];
+				console.log(`suit=${suit}`);
+				break;
+			}
+		}
+		if (suit != '') {
+			callText = `${level}${suit}`;
+		}
+	}
+	else {
+		// either pass or double or redouble
+		if (buttonPassHighlighted()) {
+			callText = '--';
+		}
+		else if (buttonDoubleHighlighted()) {
+			callText = 'Db';
+		}
+		else if (buttonRedoubleHighlighted()) {
+			callText = 'Rd';
+		}
+	}
+	if (callText != '') {
+		addLog(`key:[${callText}]`);
+		console.log(`key:[${callText}]`);
+		getAlert();
+		if ((confirmBidsSet() == 'Y')) confirmBid();
+		return;
+	}
+	else {
+		console.log('no highlighted button pattern');
+	}
+
+}
+
+function setBiddingKeyboardEvents(elBiddingButtons) {
 	// for now we will attach to all keyboard events
 	// and then ignore the ones that are from an INPUT element
 	document.onkeyup = handleKeyboardBid;
 	
+	okButtonStyleObserver = new MutationObserver(mutationRecords => {
+		logMutRecords(mutationRecords, 'okMut');
+	});
+
+	okButtonStyleObserver.observe(elBiddingButtons[16], {
+		attributes: true, 
+		attributeFilter: ['style'],
+	});
+
+	suitButtonStyleObserver = new MutationObserver(mutationRecords => {
+		logMutRecords(mutationRecords, 'suitMut');
+		highlightedButtonsToCallText();
+	});
+	
+	// for debugging listen for changes on suit buttons and pass, double, redouble
+	for (idx=7; idx<15; idx++) {
+		suitButtonStyleObserver.observe(elBiddingButtons[idx], {
+			attributes: true, 
+			attributeFilter: ['style'],
+		});
+	}
+}
+
+// Set action for each bidding box button
+function setBiddingButtonEvents() {
 	var elBiddingBox = document.querySelector(".biddingBoxClass");
 	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
 	if (elBiddingButtons == null) return;
 	if (elBiddingButtons.length < 17) return;
+	setBiddingKeyboardEvents(elBiddingButtons); 
 	setUndo();
 	setPostMortem();
 	if (elBiddingButtons[0].onmousedown == null) {
