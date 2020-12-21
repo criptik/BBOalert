@@ -321,16 +321,23 @@ function openAccountTab() {
 	return true;
 }
 
-
-function confirmBidsSet() {
+function isSettingSet(settingIndex) {
 	var rd = document.getElementById('rightDiv');
 	if (rd == null) return '';
 	var sc = rd.querySelectorAll('.settingClass');
-	if (sc.length < 6) {
+	if (sc.length < settingIndex+1) {
 		if (sc.length == 0) return '';
 	}
-	if (document.querySelectorAll('.settingClass')[4].querySelector('mat-slide-toggle').classList[2] == "mat-checked") return 'Y';
+	if (document.querySelectorAll('.settingClass')[settingIndex].querySelector('mat-slide-toggle').classList[2] == "mat-checked") return 'Y';
 	else return 'N';
+}
+
+function confirmBidsSet() {
+	return isSettingSet(4);
+}
+
+function keyboardEntrySet() {
+	return isSettingSet(7);
 }
 
 function isBiddingButtonVisible(buttonIndex) {

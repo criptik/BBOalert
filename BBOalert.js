@@ -639,14 +639,22 @@ function setPostMortem() {
 	if (ok.onclick == null) ok.onclick = savePostMortem;
 }
 
+let okButtonStyleObserver;
+let suitButtonStyleObserver;
+// set the following true to get verbose console.log for keyBid debugging
+let keyBidVerbose = true;
+
+function isKeyBidVerbose() {
+	return keyBidVerbose;
+}
 
 function handleKeyboardBid(e) {
 	// this listener will ignore anything if the bidding box is not visible
-	// (for example, keyboard input for cards played)
 	if (!isVisible(getBiddingBox())) {
 		return
 	}
 	// will also ignore anything caught from an INPUT element
+	// (for example, keyboard input for cards played)
 	if (e.target.nodeName == 'INPUT') {
 		return;
 	}
@@ -675,17 +683,7 @@ function handleKeyboardBid(e) {
 	}
 }
 
-let okButtonStyleObserver;
-let suitButtonStyleObserver;
-// set the following true to get verbose console.log for keyBid debugging
-let keyBidVerbose = false;
-
-function isKeyBidVerbose() {
-	return keyBidVerbose;
-}
-
 function logMutRecords(mutationRecords, name) {
-	if (!isKeyBidVerbose()) return;
 	// get list of button Texts
 	console.log(`${name}: ${mutationRecords.length}, ${Date.now()}`);
 	for (let mut of mutationRecords) {
@@ -727,8 +725,8 @@ function highlightedButtonsToCallText() {
 			callText = `${level}${suit}`;
 		}
 	}
-	else {
-		// either pass or double or redouble
+	// if no matches yet, check for either pass or double or redouble
+	if (callText == '') {
 		if (buttonPassHighlighted()) {
 			callText = '--';
 		}
@@ -739,6 +737,7 @@ function highlightedButtonsToCallText() {
 			callText = 'Rd';
 		}
 	}
+	// match found, getAlert, etc.
 	if (callText != '') {
 		addLog(`key:[${callText}]`);
 		if (isKeyBidVerbose()) console.log(`key:[${callText}]`);
@@ -754,39 +753,49 @@ function highlightedButtonsToCallText() {
 
 function setBiddingKeyboardEvents(elBiddingButtons) {
 	// for now we will attach to all keyboard events
-	// and then ignore the ones that are from an INPUT element
+	// and then ignore the ones that are from an INPUT elements, etc.
 	document.onkeyup = handleKeyboardBid;
-	
-	okButtonStyleObserver = new MutationObserver(mutationRecords => {
-		logMutRecords(mutationRecords, 'okMut');
-	});
 
-	okButtonStyleObserver.observe(elBiddingButtons[16], {
-		attributes: true, 
-		attributeFilter: ['style'],
-	});
-
+	// we always listen for changes on suit buttons and pass, double, redouble
+	// (these signify the end of a legal bid)
 	suitButtonStyleObserver = new MutationObserver(mutationRecords => {
-		logMutRecords(mutationRecords, 'suitMut');
+		if (isKeyBidVerbose()) logMutRecords(mutationRecords, 'suitMut');
 		highlightedButtonsToCallText();
 	});
 	
-	// for debugging listen for changes on suit buttons and pass, double, redouble
 	for (idx=7; idx<15; idx++) {
 		suitButtonStyleObserver.observe(elBiddingButtons[idx], {
 			attributes: true, 
 			attributeFilter: ['style'],
 		});
 	}
+
+	// this OK button observer is really just for debugging purposes
+	// so we only enable it when keyBidVerbose is set
+	if (isKeyBidVerbose()) {
+		okButtonStyleObserver = new MutationObserver(mutationRecords => {
+			if (isKeyBidVerbose()) logMutRecords(mutationRecords, 'okMut');
+		});
+
+		okButtonStyleObserver.observe(elBiddingButtons[16], {
+			attributes: true, 
+			attributeFilter: ['style'],
+		});
+	}
+	console.log('Keyboard bidding listeners set up');
 }
 
 // Set action for each bidding box button
 function setBiddingButtonEvents() {
 	var elBiddingBox = document.querySelector(".biddingBoxClass");
+	if (elBiddingBox == null) return;
 	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
 	if (elBiddingButtons == null) return;
 	if (elBiddingButtons.length < 17) return;
-	setBiddingKeyboardEvents(elBiddingButtons); 
+	// if keyboard bidding is set, also hook in necessary listeners
+	if (keyboardEntrySet() == 'Y') {
+		setBiddingKeyboardEvents(elBiddingButtons);
+	}
 	setUndo();
 	setPostMortem();
 	if (elBiddingButtons[0].onmousedown == null) {
