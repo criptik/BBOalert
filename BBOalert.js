@@ -642,7 +642,7 @@ function setPostMortem() {
 let okButtonStyleObserver;
 let suitButtonStyleObserver;
 // set the following true to get verbose console.log for keyBid debugging
-let keyBidVerbose = true;
+let keyBidVerbose = false;
 
 function isKeyBidVerbose() {
 	return keyBidVerbose;

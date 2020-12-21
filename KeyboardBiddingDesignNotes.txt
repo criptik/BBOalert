@@ -57,9 +57,13 @@ For this reason, the mutationObserver for bidding Buttons style
 attributes is the one that drives the mapping to callText and calling
 findAlert().
 
+Actually this logic works for mouse based bidding as well but I didn't
+make any changes to that infrastructure.
+
 The few new entries in functions.js to support the above are probably
 obvious.  I converted a few "catch {" statements to "catch (e) {"
 because the syntax checker I was using was complaining but that had
-nothing to do with the keyboard bidding support.
+nothing to do with the keyboard bidding support.  You can feel free to
+revert those if you want.
 
 
