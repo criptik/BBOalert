@@ -648,6 +648,98 @@ function isKeyBidVerbose() {
 	return keyBidVerbose;
 }
 
+// functions for testing the legality of a bid, used by handleKeyboardBid
+function isLevSuitBid(bid) {
+	if (bid == null) return false;
+	else return('1234567'.includes(bid[0]));
+}
+
+function bidAtPos(ctx, pos) {
+	return ctx.slice(pos, pos+2);
+}
+
+function findLastLevSuitPos(s) {
+	pos = s.length-2;
+	while ((pos >= 0) && (!isLevSuitBid(bidAtPos(s, pos)))) {
+		pos -= 2;
+	}
+	return pos;
+}
+
+function isBidByOpp(s, pos) {
+	bidsFromEnd = (s.length - pos)/2;
+	return ((bidsFromEnd % 2) == 1);
+}
+
+function findLastLevSuitBid(s) {
+	pos = findLastLevSuitPos(s);
+	if (pos < 0) {
+		bid = null;
+		byOpp = null;
+	}
+	else {
+		bid = bidAtPos(s, pos);
+		byOpp = isBidByOpp(s, pos);
+	}
+	return {bid, byOpp};
+}
+
+function findLastNonPassPos(s) {
+	pos = s.length-2;
+	while ((pos >= 0) && (bidAtPos(s, pos) == '--')) {
+		pos -= 2;
+	}
+	return pos;
+}
+
+function findLastNonPassBid(s) {
+	pos = findLastNonPassPos(s);
+	if (pos < 0) {
+		bid = null;
+		byOpp = null;
+	}
+	else {
+		bid = bidAtPos(s, pos);
+		byOpp = isBidByOpp(s, pos);
+	}
+	return {bid, byOpp};
+}
+
+function isHigherThan(bid, prevBid) {
+	if (bid[0] > prevBid[0]) return true;
+	else if (bid[0] < prevBid[0]) return false;
+	else {
+		// levels are the same, check suit
+		idx = 'CDHSN'.indexOf(bid[1]);
+		previdx = 'CDHSN'.indexOf(prevBid[1]);
+		return (idx > previdx);
+	}
+}
+
+function isLegalBid(bid, ctx) {
+	// pass is always legal
+	if (bid == '--') return true;
+	if (isLevSuitBid(bid[0])) {
+		lastBidObj = findLastLevSuitBid(ctx);
+		if (lastBidObj.bid == null) return true;
+		return(isHigherThan(bid, lastBidObj.bid));
+	}
+	if (bid == 'Db') {
+		lastNonPassObj = findLastNonPassBid(ctx);
+		if (lastNonPassObj.bid == null) return false;
+		return (isLevSuitBid(lastNonPassObj.bid) && lastNonPassObj.byOpp);
+	}
+	if (bid == 'Rd') {
+		lastNonPassObj = findLastNonPassBid(ctx);
+		if (lastNonPassObj.bid == null) return false;
+		return ((lastNonPassObj.bid == 'Db') && lastNonPassObj.byOpp)
+	}
+
+	// should not get this far, but if we do it is not legal
+	return false;
+}
+
+
 function handleKeyboardBid(e) {
 	// this listener will ignore anything if the bidding box is not visible
 	if (!isVisible(getBiddingBox())) {
@@ -660,6 +752,7 @@ function handleKeyboardBid(e) {
 	}
 	
 	ukey = e.key.toUpperCase();
+	if (isKeyBidVerbose()) console.log(`ukey=${ukey}`);
 	// since all the logic is really in the  mutation observers
 	// here we only check for Enter to record the callText 
 	if (ukey === 'ENTER') {
@@ -674,114 +767,69 @@ function handleKeyboardBid(e) {
 		}
 		// restart bid gathering
 		callText = '';
+		return;
 	}
-	// level bids just addLog and clearAlert
-	// callText manipulation is in MutationObserver
+	// level bids just addLog and clearAlert and return
 	else if ('1234567'.includes(ukey)) {
 		addLog(`key:[${ukey}]`);
+		callText = ukey;
 		if ((confirmBidsSet() != 'N')) clearAlert();
+		return;
 	}
-}
-
-function logMutRecords(mutationRecords, name) {
-	// get list of button Texts
-	console.log(`${name}: ${mutationRecords.length}, ${Date.now()}`);
-	for (let mut of mutationRecords) {
-		buttonBgColor = mut.target.style.backgroundColor;
-		buttonDisplay = mut.target.style.display;
-		console.log(`${mut.target.innerText}, ${buttonBgColor}, ${buttonDisplay}`);
+	// the following keystrokes "finish" a bid
+	else if (ukey == 'P') {
+		addLog(`key:[${ukey}]`);
+		callText = '--';
+		// pass is always legal
 	}
-	if (false) {
-		for (let mut of mutationRecords) {
-			console.log(mut);
-		}
-	}
-}
-
-function highlightedButtonsToCallText() {
-	callText = '';
-	if (!buttonOKHighlighted()) return;
-
-	// find out which buttons are highlighted
-	level = 0;
-	for (idx=0; idx<7; idx++) {
-		if (isBiddingButtonHighlighted(idx)) {
-			level = idx + 1;
-			if (isKeyBidVerbose()) console.log(`level=${level}`);
-			break;
-		}
-	}
-	if (level > 0) {
-		// search suits
-		suit = ''
-		for (idx=7; idx<12; idx++) {
-			if (isBiddingButtonHighlighted(idx)) {
-				suit = 'CDHSN'[idx-7];
-				if (isKeyBidVerbose()) console.log(`suit=${suit}`);
-				break;
+	else if (callText.length == 1 && 'CDHSN'.includes(ukey)) {
+		addLog(`key:[${ukey}]`);
+		callText = callText + ukey;  // add suit to bid
+		ctx = getContext();
+		if (!isLegalBid(callText, ctx)) {
+			callText = '';
+			// special case if bid was insufficient but suit was diamonds
+			// BBO interprets that as a "double"
+			if ((ukey == 'D') && isLegalBid('Db', ctx)) {
+				callText = 'Db';
 			}
 		}
-		if (suit != '') {
-			callText = `${level}${suit}`;
+	}
+	else if (callText.length == 0 && ukey == 'D') {
+		addLog(`key:[${ukey}]`);
+		callText = 'Db';
+		ctx = getContext();
+		if (!isLegalBid(callText, ctx)) {
+			callText = '';
 		}
 	}
-	// if no matches yet, check for either pass or double or redouble
-	if (callText == '') {
-		if (buttonPassHighlighted()) {
-			callText = '--';
-		}
-		else if (buttonDoubleHighlighted()) {
-			callText = 'Db';
-		}
-		else if (buttonRedoubleHighlighted()) {
-			callText = 'Rd';
+	else if (ukey == 'R') {
+		addLog(`key:[${ukey}]`);
+		callText = 'Rd';
+		ctx = getContext();
+		if (!isLegalBid(callText, ctx)) {
+			callText = '';
 		}
 	}
-	// match found, getAlert, etc.
+
+	// if we got here with a non-zero (legal) callText, getAlert, etc.
 	if (callText != '') {
-		addLog(`key:[${callText}]`);
-		if (isKeyBidVerbose()) console.log(`key:[${callText}]`);
+		addLog(`keyCall:[${callText}]`);
+		if (isKeyBidVerbose()) console.log(`keyCall:[${callText}]`);
 		getAlert();
 		if ((confirmBidsSet() == 'Y')) confirmBid();
 		return;
 	}
 	else {
-		if (isKeyBidVerbose()) console.log('no highlighted button pattern');
+		if (isKeyBidVerbose()) console.log('no callText found in keyboard listener');
 	}
-
+	
 }
 
 function setBiddingKeyboardEvents(elBiddingButtons) {
 	// for now we will attach to all keyboard events
 	// and then ignore the ones that are from an INPUT elements, etc.
-	document.onkeyup = handleKeyboardBid;
-
-	// we always listen for changes on suit buttons and pass, double, redouble
-	// (these signify the end of a legal bid)
-	suitButtonStyleObserver = new MutationObserver(mutationRecords => {
-		if (isKeyBidVerbose()) logMutRecords(mutationRecords, 'suitMut');
-		highlightedButtonsToCallText();
-	});
-	
-	for (idx=7; idx<15; idx++) {
-		suitButtonStyleObserver.observe(elBiddingButtons[idx], {
-			attributes: true, 
-			attributeFilter: ['style'],
-		});
-	}
-
-	// this OK button observer is really just for debugging purposes
-	// so we only enable it when keyBidVerbose is set
-	if (isKeyBidVerbose()) {
-		okButtonStyleObserver = new MutationObserver(mutationRecords => {
-			if (isKeyBidVerbose()) logMutRecords(mutationRecords, 'okMut');
-		});
-
-		okButtonStyleObserver.observe(elBiddingButtons[16], {
-			attributes: true, 
-			attributeFilter: ['style'],
-		});
-	}
+	document.addEventListener('keydown', handleKeyboardBid, true);
 	console.log('Keyboard bidding listeners set up');
 }
 

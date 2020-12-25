@@ -350,72 +350,11 @@ function isBiddingButtonVisible(buttonIndex) {
 	return (elBiddingButtons[buttonIndex].style.display != 'none');
 }
 
-const bboWhite  = 'rgb(255, 255, 255)'
-const bboYellow = 'rgb(255, 206, 0)';
-const bboRed    = 'rgb(203, 0, 0)';
-const bboGreen  = 'rgb(16, 102, 16)';
-const bboBlue  = 'rgb(67, 119, 169)';
-const bboBlack  = 'rgb(0, 0, 0)';
-var buttonBaseColors = [bboWhite, bboWhite, bboWhite, bboWhite, bboWhite, bboWhite, bboWhite, // 1-7
-			bboWhite, bboWhite, bboWhite, bboWhite, bboWhite,                     // suits
-			bboGreen, //pass
-			bboRed,   //double
-			bboBlue,  //redouble
-			bboBlack,
-			bboBlack, // OK
-];
-
-function isBiddingButtonHighlighted(buttonIndex) {
-	if ((nd = getNavDiv()) == null) return false;
-	var elBiddingBox = nd.querySelector(".biddingBoxClass");
-	if (elBiddingBox == null) return false;
-	elBiddingButtons = elBiddingBox.querySelectorAll(".biddingBoxButtonClass");
-	if (elBiddingButtons == null) return false;
-	if (elBiddingButtons.length < 17) return false;
-	buttonText = elBiddingButtons[buttonIndex].innerText;
-	if (!isBiddingButtonVisible(buttonIndex)) {
-		buttonDisplay = elBiddingButtons[buttonIndex].style.display;
-		if (isKeyBidVerbose()) console.log(`not vis: ${buttonText}, ${buttonDisplay}`);
-		return false;
-	}
-	buttonStyleBgColor = elBiddingButtons[buttonIndex].style.backgroundColor;
-	if (isKeyBidVerbose()) {
-		buttonCompBgColor = window.getComputedStyle(elBiddingButtons[buttonIndex]).backgroundColor;
-		console.log(`bgcol: ${buttonText}, ${buttonCompBgColor}, ${buttonStyleBgColor}`);
-	}
-	return (buttonStyleBgColor != buttonBaseColors[buttonIndex]);
-}
 
 function buttonOKvisible() {
 	return isBiddingButtonVisible(16)
 }
 
-function buttonOKHighlighted() {
-	return isBiddingButtonHighlighted(16)
-}
-
-function buttonPassHighlighted() {
-    return isBiddingButtonHighlighted(12)
-}
-
-function buttonDoubleHighlighted() {
-    return isBiddingButtonHighlighted(13)
-}
-
-function buttonRedoubleHighlighted() {
-	return isBiddingButtonHighlighted(14)
-}
-
-function buttonLevelHighlighted(level) {
-	if ((level < 1) || (level > 7)) return false;
-	return isBiddingButtonHighlighted(level-1);
-}
-
-function buttonSuitHighlighted(suit) {
-	suitButtonIndex = 'CDHSN'.indexOf(suit);
-	if (suitButtonIndex < 0) return false;
-	return isBiddingButtonHighlighted(suitButtonIndex + 7)
-}
 
 function toggleOptions() {
 	var adPanel0 = document.getElementById("adpanel0");
