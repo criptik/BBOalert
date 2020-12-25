@@ -1,10 +1,11 @@
-Explanation of the Keyboard Bidding support
+Explanation of the Keyboard Bidding Alert support
 -------------------------------------------
+This describes the 2nd iteration of keyboard bidding alert support.
 
-The new event listeners and MutationObservers are only set up if the
-"Keyboard entry for bidding/play" toggle is enabled in Settings.  So
-for people who don't enable that toggle, none of the new listeners or
-observers will be used.  Currently this toggle is only checked from
+The new event listener is only set up if the "Keyboard entry for
+bidding/play" toggle is enabled in Settings.  So for people who don't
+enable that toggle, none of the new listeners or observers will be
+used.  Currently this toggle is only checked from
 setBiddingButtonEvents, i.e. when when the bidding box becomes
 visible.  So if someone starts a table and only then switches on the
 toggle, the support doesn't get enabled right then.  We could listen
@@ -12,10 +13,8 @@ for the toggle to change at all times but I didn't do that.
 
 Note: In BBO, keyboard bids are of the form levelKey+SuitKey(e.g.,
 '1N'), or P(pass) or D(double) or R(redouble) followed by "Enter" for
-OK.  The current handlers I believe only work if Confirm Bids is set,
-although I haven't really tried things without Confirm Bids set.  It
-is probably possible to make it work without Confirm Bids being set if
-you think that's important.
+OK.  The current handlers I believe work whether Confirm Bids is set
+or not, although I have tested more with Confirm Bids = 'Y'.
 
 From a design consideration, the main difference between keyboard
 bidding entry and mouse bidding entry is that in keyboard bidding it
@@ -37,31 +36,12 @@ treats it as an entry for Double.
 It's true that such insufficient mis-bids are probably rare and are
 probably unlikely to match anything in findAlert(), so one design
 option would be just to ignore the illegality check feed all entries
-to findAlert().
+to getAlert().
 
-Instead, what I tried to do was use the fact that when someone types
-the last part of a bid that BBO recognizes, the OK button is
-highlighted, and some set of level+suit or Pass or Dbl or Rdbl buttons
-will also be highlighted.  So if we can read the highlighted bidding
-buttons, we would be in sync with BBO and can put the bid in
-"callText" and feed that bid to findAlert().
+Instead, I tried to check the legality of a keyboard bid before submitting to getAlert()
+so that it would only call getAlert() with the patterns that the BBO handler recognizes.
 
-For some reason the order of this highlighting in BBO is
-   1. OK button highlighted
-   2. all correct bidding buttons highlighted
-(I would have expected the OK button to be the last thing to highlight
-but when I tried using the OK button change as the driving force, the
-bidding buttons were not always highlighted yett).
-
-For this reason, the mutationObserver for bidding Buttons style
-attributes is the one that drives the mapping to callText and calling
-findAlert().
-
-Actually this logic works for mouse based bidding as well but I didn't
-make any changes to that infrastructure.
-
-The few new entries in functions.js to support the above are probably
-obvious.  I converted a few "catch {" statements to "catch (e) {"
+In functions.js I converted a few "catch {" statements to "catch (e) {"
 because the syntax checker I was using was complaining but that had
 nothing to do with the keyboard bidding support.  You can feel free to
 revert those if you want.
