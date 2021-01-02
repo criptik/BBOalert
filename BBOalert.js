@@ -649,9 +649,13 @@ function isKeyBidVerbose() {
 }
 
 // functions for testing the legality of a bid, used by handleKeyboardBid
+function isBidLevelChar(ch) {
+	return ('1234567'.includes(ch));
+}
+
 function isLevSuitBid(bid) {
 	if (bid == null) return false;
-	else return('1234567'.includes(bid[0]));
+	else return(isBidLevelChar(bid[0]));
 }
 
 function bidAtPos(ctx, pos) {
@@ -770,7 +774,7 @@ function handleKeyboardBid(e) {
 		return;
 	}
 	// level bids just addLog and clearAlert and return
-	else if ('1234567'.includes(ukey)) {
+	else if (isBidLevelChar(ukey)) {
 		addLog(`key:[${ukey}]`);
 		callText = ukey;
 		if ((confirmBidsSet() != 'N')) clearAlert();
@@ -782,9 +786,9 @@ function handleKeyboardBid(e) {
 		callText = '--';
 		// pass is always legal
 	}
-	else if (callText.length == 1 && 'CDHSN'.includes(ukey)) {
+	else if ('CDHSN'.includes(ukey) && (callText.length != 0) && isBidLevelChar(callText[0])) {
 		addLog(`key:[${ukey}]`);
-		callText = callText + ukey;  // add suit to bid
+		callText = callText[0] + ukey;  // add suit to bid
 		ctx = getContext();
 		if (!isLegalBid(callText, ctx)) {
 			callText = '';
