@@ -23,8 +23,8 @@ would be typing in "1" and "C" when the auction is already at 1S.  Or
 typing in "D" for double when your partner rather than the opps made
 the last bid. The base BBO keyboard bid listener of course ignores
 such bids but if we just have a listener for keyboard events we would
-also have the logic to match the BBO logic rather than automatically
-feed them to the findAlert matcher.
+also need to match the BBO logic rather than automatically feed them
+to the findAlert matcher.
 
 A related keyboard bidding quirk is that the key "D" can be
 interpreted by BBO as the suit Diamonds if preceded by a legal bid
@@ -38,8 +38,9 @@ probably unlikely to match anything in findAlert(), so one design
 option would be just to ignore the illegality check feed all entries
 to getAlert().
 
-Instead, I tried to check the legality of a keyboard bid before submitting to getAlert()
-so that it would only call getAlert() with the patterns that the BBO handler recognizes.
+Instead, I tried to check the legality of a keyboard bid before
+submitting to getAlert() so that it would only call getAlert() with
+the patterns that the BBO handler recognizes.
 
 In functions.js I converted a few "catch {" statements to "catch (e) {"
 because the syntax checker I was using was complaining but that had
